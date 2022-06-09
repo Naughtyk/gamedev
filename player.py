@@ -24,15 +24,23 @@ class Player(pygame.sprite.Sprite):
         self.attack_cooldown = 400
         self.attack_time = None
         self.speed = 10
+        self.obstacle_sprites = obstacle_sprites
 
         # weapon
         self.create_attack = create_attack
         self.destroy_attack = destroy_attack
-        self.weapon_index = 0
+        self.weapon_index = 2
         self.weapon = list(weapon_data.keys())[self.weapon_index]
-        #print(self.weapon)
+        self.can_switch_weapon = True
+        self.weapon_switch_time = None
+        self.switch_duration_cooldown = 200
 
-        self.obstacle_sprites = obstacle_sprites
+        # stats
+        self.stats = {'health': 100, 'energy': 60, 'attack': 10, 'magic': 4, 'speed': 6}
+        self.health = self.stats['health']
+        self.energy = self.stats['energy']
+        self.exp = 123
+        self.speed = self.stats['speed']
 
     def get_status(self):
 
@@ -96,6 +104,12 @@ class Player(pygame.sprite.Sprite):
                 self.attack_time = pygame.time.get_ticks()
                 print('magic')
 
+            if keys[pygame.K_q] and self.can_switch_weapon:
+                self.can_switch_weapon = False
+                self.weapon_switch_time = pygame.time.get_ticks()
+                self.weapon_index = (self.weapon_index + 1)%len(weapon_data)
+                self.weapon = list(weapon_data.keys())[self.weapon_index]
+
     def cooldowns(self):
         current_time = pygame.time.get_ticks()
 
@@ -103,6 +117,10 @@ class Player(pygame.sprite.Sprite):
             if current_time - self.attack_time >= self.attack_cooldown:
                 self.attacking = False
                 self.destroy_attack()
+
+        if not self.can_switch_weapon:
+            if current_time - self.weapon_switch_time >= self.switch_duration_cooldown:
+                self.can_switch_weapon = True
 
     def move(self, speed):
         if self.direction.magnitude() != 0:
