@@ -6,7 +6,7 @@ from support import import_folder
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, groups, obstacle_sprites, create_attack, destroy_attack):
+    def __init__(self, pos, groups, obstacle_sprites, create_attack, destroy_attack, create_magic):
         super().__init__(groups)
         self.image = pygame.image.load('graphics/test/player.png').convert_alpha()
         self.rect = self.image.get_rect(topleft=pos)
@@ -34,6 +34,13 @@ class Player(pygame.sprite.Sprite):
         self.can_switch_weapon = True
         self.weapon_switch_time = None
         self.switch_duration_cooldown = 200
+
+        # magic
+        self.create_magic = create_magic
+        self.magic_index = 0
+        self.magic = list(magic_data.keys())[self.magic_index]
+        self.can_switch_magic = True
+        self.magic_switch_time = None
 
         # stats
         self.stats = {'health': 100, 'energy': 60, 'attack': 10, 'magic': 4, 'speed': 6}
@@ -75,18 +82,18 @@ class Player(pygame.sprite.Sprite):
             keys = pygame.key.get_pressed()
 
             # movement input
-            if keys[pygame.K_UP]:
+            if keys[pygame.K_UP] or keys[pygame.K_w]:
                 self.direction.y = -1
                 self.status = 'up'
-            elif keys[pygame.K_DOWN]:
+            elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
                 self.direction.y = 1
                 self.status = 'down'
             else:
                 self.direction.y = 0
-            if keys[pygame.K_LEFT]:
+            if keys[pygame.K_LEFT] or keys[pygame.K_a]:
                 self.direction.x = -1
                 self.status = 'left'
-            elif keys[pygame.K_RIGHT]:
+            elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
                 self.direction.x = 1
                 self.status = 'right'
             else:
@@ -102,13 +109,22 @@ class Player(pygame.sprite.Sprite):
             if keys[pygame.K_LCTRL]:
                 self.attacking = True
                 self.attack_time = pygame.time.get_ticks()
-                print('magic')
+                style = self.magic
+                strength = magic_data[self.magic]['strength'] + self.stats['magic']
+                cost = magic_data[self.magic]['cost']
+                self.create_magic(style, strength, cost)
 
             if keys[pygame.K_q] and self.can_switch_weapon:
                 self.can_switch_weapon = False
                 self.weapon_switch_time = pygame.time.get_ticks()
                 self.weapon_index = (self.weapon_index + 1)%len(weapon_data)
                 self.weapon = list(weapon_data.keys())[self.weapon_index]
+
+            if keys[pygame.K_e] and self.can_switch_magic:
+                self.can_switch_magic = False
+                self.magic_switch_time = pygame.time.get_ticks()
+                self.magic_index = (self.magic_index + 1) % len(magic_data)
+                self.magic = list(magic_data.keys())[self.magic_index]
 
     def cooldowns(self):
         current_time = pygame.time.get_ticks()
@@ -121,6 +137,10 @@ class Player(pygame.sprite.Sprite):
         if not self.can_switch_weapon:
             if current_time - self.weapon_switch_time >= self.switch_duration_cooldown:
                 self.can_switch_weapon = True
+
+        if not self.can_switch_magic:
+            if current_time - self.magic_switch_time >= self.switch_duration_cooldown:
+                self.can_switch_magic = True
 
     def move(self, speed):
         if self.direction.magnitude() != 0:
